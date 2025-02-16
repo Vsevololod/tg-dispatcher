@@ -1,10 +1,14 @@
 package amqp
 
 import (
+	"context"
 	"encoding/json"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"log"
 	"log/slog"
 	"tg-dispatcher/domain"
+	"tg-dispatcher/lib/logger/sl"
 
 	"github.com/rabbitmq/amqp091-go"
 )
@@ -69,6 +73,9 @@ func (p *Producer) StartPublishing(messageChannel chan domain.MessageReq) {
 
 // PublishMessage отправляет сообщение в RabbitMQ через Exchange
 func (p *Producer) PublishMessage(msg domain.MessageReq) error {
+	ctx, span := otel.Tracer("tg-dispatcher").Start(context.Background(), "PublishMessage")
+	defer span.End()
+
 	body, err := json.Marshal(msg.Message)
 	if err != nil {
 		return err
@@ -76,7 +83,8 @@ func (p *Producer) PublishMessage(msg domain.MessageReq) error {
 
 	routingKey := msg.Destination.String()
 
-	err = p.channel.Publish(
+	err = p.channel.PublishWithContext(
+		ctx,
 		p.exchange, // Exchange
 		routingKey, // Routing Key (для direct или topic exchange)
 		false,      // Mandatory
@@ -89,6 +97,14 @@ func (p *Producer) PublishMessage(msg domain.MessageReq) error {
 			},
 		},
 	)
+
+	if err != nil {
+		span.RecordError(err)
+		p.log.Error("Ошибка публикации", sl.Err(err))
+	} else {
+		span.SetAttributes(attribute.String("uuid", msg.UUID))
+		p.log.Info("Сообщение отправлено", slog.String("uuid", msg.UUID))
+	}
 	return err
 }
 

@@ -1,6 +1,9 @@
 package amqp
 
 import (
+	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"log/slog"
 	"tg-dispatcher/domain"
 	"tg-dispatcher/lib/logger/sl"
@@ -64,6 +67,12 @@ func (c *Consumer) StartListening(messageChannel chan domain.Update) {
 	// Обрабатываем каждое сообщение в горутине
 	go func() {
 		for msg := range msgs {
+			_, span := otel.Tracer("tg-dispatcher").Start(context.Background(), "ConsumeMessage")
+
+			if uuid, ok := msg.Headers["uuid"].(string); ok {
+				span.SetAttributes(attribute.String("uuid", uuid))
+			}
+
 			update, err := domain.ParseUpdate(msg.Body)
 			if value, ok := msg.Headers["uuid"].(string); ok {
 				update.UUID = value
@@ -77,6 +86,7 @@ func (c *Consumer) StartListening(messageChannel chan domain.Update) {
 			// Пишем сообщение в канал
 			messageChannel <- update
 			_ = msg.Ack(true) // Подтверждаем получение
+			span.End()
 		}
 	}()
 }

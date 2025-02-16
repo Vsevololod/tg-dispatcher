@@ -10,6 +10,7 @@ import (
 	"tg-dispatcher/service"
 	"tg-dispatcher/service/processors"
 	"tg-dispatcher/storage/postgresql"
+	"tg-dispatcher/tracing"
 	"time"
 )
 
@@ -23,6 +24,8 @@ func main() {
 	cfg := config.MustLoad()
 	log := setupLogger(cfg.Env)
 
+	shutdown := tracing.InitTracer(&cfg.OtlpConfig)
+	defer shutdown()
 	// Создаем канал для передачи сообщений
 	inputMessageChannel := make(chan domain.Update, 100)
 	outputMessageChannel := make(chan domain.MessageReq, 100)

@@ -8,9 +8,10 @@ import (
 )
 
 type Config struct {
-	Env      string         `yaml:"env" env-default:"local"`
-	PgConf   PostgresConfig `yaml:"postgres"`
-	AmqpConf AmqpConfig     `yaml:"amqp"`
+	Env        string         `yaml:"env" env-default:"local"`
+	PgConf     PostgresConfig `yaml:"postgres"`
+	AmqpConf   AmqpConfig     `yaml:"amqp"`
+	OtlpConfig OtlpConfig     `yaml:"otlp_config"`
 	//MigrationsPath string
 	//TokenTTL       time.Duration `yaml:"token_ttl" env-default:"1h"`
 }
@@ -32,6 +33,12 @@ type AmqpConfig struct {
 	QueueName    string `yaml:"queue"`
 	ExchangeName string `yaml:"exchange"`
 	RoutingKey   string `yaml:"routing_key"`
+}
+
+type OtlpConfig struct {
+	Host        string `yaml:"host"`
+	Port        int    `yaml:"port"`
+	ServiceName string `yaml:"service_name"`
 }
 
 func (r AmqpConfig) GetAmqpUri() string {
