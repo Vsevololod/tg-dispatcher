@@ -1,0 +1,9 @@
+.idea
+tg-dispatcher.iml
+
+#my local
+.ssh
+.auth.env
+
+#configs
+config/config_local.yaml
