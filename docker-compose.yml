@@ -1,0 +1,16 @@
+services:
+  tg-dispatcher:
+    container_name: tg-dispatcher
+    hostname: tg-dispatcher
+    image: tg-dispatcher
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VERSION: "${VERSION}"
+        GIT_COMMIT: "${COMMIT_HASH}"
+        BUILD_TIME: "${BUILD_TIME}"
+    environment:
+      - CONFIG_PATH=/app/data/config.yaml
+    volumes:
+      - ./config/config.yaml:/app/data/config.yaml
