@@ -14,3 +14,9 @@ services:
       - CONFIG_PATH=/app/data/config.yaml
     volumes:
       - ./config/config.yaml:/app/data/config.yaml
+    networks:
+      - tgqueue_default
+
+networks:
+  tgqueue_default:
+    external: true
