@@ -1,13 +1,13 @@
 package amqp
 
 import (
-	"context"
 	"encoding/json"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"log"
 	"log/slog"
 	"tg-dispatcher/domain"
+	"tg-dispatcher/lib"
 	"tg-dispatcher/lib/logger/sl"
 
 	"github.com/rabbitmq/amqp091-go"
@@ -73,7 +73,7 @@ func (p *Producer) StartPublishing(messageChannel chan domain.MessageReq) {
 
 // PublishMessage отправляет сообщение в RabbitMQ через Exchange
 func (p *Producer) PublishMessage(msg domain.MessageReq) error {
-	ctx, span := otel.Tracer("tg-dispatcher").Start(context.Background(), "PublishMessage")
+	ctx, span := otel.Tracer("tg-dispatcher").Start(msg.Context, "PublishMessage")
 	defer span.End()
 
 	body, err := json.Marshal(msg.Message)
@@ -82,6 +82,8 @@ func (p *Producer) PublishMessage(msg domain.MessageReq) error {
 	}
 
 	routingKey := msg.Destination.String()
+	headers := lib.MapCarrierToAMQPTable(msg.Context)
+	headers["uuid"] = msg.UUID
 
 	err = p.channel.PublishWithContext(
 		ctx,
@@ -92,9 +94,7 @@ func (p *Producer) PublishMessage(msg domain.MessageReq) error {
 		amqp091.Publishing{
 			ContentType: "application/json",
 			Body:        body,
-			Headers: amqp091.Table{
-				"uuid": msg.UUID,
-			},
+			Headers:     headers,
 		},
 	)
 

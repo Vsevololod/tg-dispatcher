@@ -1,12 +1,16 @@
 package domain
 
-import "encoding/json"
+import (
+	"context"
+	"encoding/json"
+)
 
 // Update представляет корневой объект
 type Update struct {
 	UpdateID int64   `json:"update_id"`
 	Message  Message `json:"message"`
 	UUID     string
+	Context  context.Context
 }
 
 // Message содержит информацию о сообщении

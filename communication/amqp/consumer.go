@@ -4,8 +4,10 @@ import (
 	"context"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"log/slog"
 	"tg-dispatcher/domain"
+	"tg-dispatcher/lib"
 	"tg-dispatcher/lib/logger/sl"
 
 	"github.com/rabbitmq/amqp091-go"
@@ -67,21 +69,20 @@ func (c *Consumer) StartListening(messageChannel chan domain.Update) {
 	// Обрабатываем каждое сообщение в горутине
 	go func() {
 		for msg := range msgs {
-			_, span := otel.Tracer("tg-dispatcher").Start(context.Background(), "ConsumeMessage")
 
-			if uuid, ok := msg.Headers["uuid"].(string); ok {
-				span.SetAttributes(attribute.String("uuid", uuid))
-			}
+			ctx, span := tracerStart(msg.Headers)
+
+			uuid := lib.GetUUIDFromHeaders(msg.Headers)
+			span.SetAttributes(attribute.String("uuid", uuid))
 
 			update, err := domain.ParseUpdate(msg.Body)
-			if value, ok := msg.Headers["uuid"].(string); ok {
-				update.UUID = value
-			}
 			if err != nil {
 				log.Error("Ошибка декодирования JSON: %s", sl.Err(err))
 				_ = msg.Ack(false)
 				continue
 			}
+			update.Context = ctx
+			update.UUID = uuid
 
 			// Пишем сообщение в канал
 			messageChannel <- update
@@ -89,6 +90,18 @@ func (c *Consumer) StartListening(messageChannel chan domain.Update) {
 			span.End()
 		}
 	}()
+}
+
+func tracerStart(msgHeaders amqp091.Table) (context.Context, trace.Span) {
+
+	// Конвертируем amqp091.Table в propagation.MapCarrier
+	carrier := lib.MapAMQPTableToMapCarrier(msgHeaders)
+
+	// Восстанавливаем контекст OpenTelemetry
+	ctx := otel.GetTextMapPropagator().Extract(context.Background(), carrier)
+
+	tracer := otel.Tracer("tg-dispatcher")
+	return tracer.Start(ctx, "MessageReceived")
 }
 
 // Close закрывает соединение с RabbitMQ

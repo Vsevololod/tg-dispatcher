@@ -3,6 +3,8 @@ package processors
 import (
 	"context"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"log/slog"
 	"strings"
 	"tg-dispatcher/domain"
@@ -37,11 +39,17 @@ func (s UrlProcessStrategy) GetDescription() string {
 
 func (s UrlProcessStrategy) Process(update domain.Update) bool {
 	s.log.Info("Process Url:", update)
+
+	tracer := otel.Tracer("tg-dispatcher")
+	ctx, span := tracer.Start(update.Context, "ProcessMessage")
+	defer span.End()
+
 	videoId := lib.GetVideoIdFromUrl(update.Message.Text)
-	video, err := s.videoProvider.GetVideoById(context.Background(), videoId)
+	span.SetAttributes(attribute.String("video-id", videoId))
+	video, err := s.videoProvider.GetVideoById(ctx, videoId)
 	if err != nil {
 		if errors.Is(err, storage.ErrVideoNotFound) {
-			err := s.videoSaver.SaveVideoMin(context.Background(),
+			err := s.videoSaver.SaveVideoMin(ctx,
 				update.UUID,
 				update.UpdateID,
 				update.Message.Text,
@@ -49,6 +57,7 @@ func (s UrlProcessStrategy) Process(update domain.Update) bool {
 				update.Message.From.ID,
 			)
 			if err != nil {
+				span.RecordError(err)
 				s.log.Error("Cannot save video", sl.Err(err), sl.Req(update))
 				return false
 			}
@@ -59,6 +68,7 @@ func (s UrlProcessStrategy) Process(update domain.Update) bool {
 					Id:  update.UUID,
 					Url: update.Message.Text,
 				},
+				Context: ctx,
 			}
 		} else {
 			s.outputMessageChannel <- domain.MessageReq{
@@ -68,6 +78,7 @@ func (s UrlProcessStrategy) Process(update domain.Update) bool {
 					UserId: update.Message.From.ID,
 					HashId: video.HashID,
 				},
+				Context: ctx,
 			}
 		}
 	}

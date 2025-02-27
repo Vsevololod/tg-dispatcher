@@ -1,5 +1,7 @@
 package domain
 
+import "context"
+
 type DestinationType int
 
 const (
@@ -25,4 +27,5 @@ type MessageReq struct {
 	UUID        string          `json:"UUID"`
 	Destination DestinationType `json:"destination"`
 	Message     interface{}     `json:"message"`
+	Context     context.Context
 }
