@@ -45,3 +45,7 @@ func (s *MessageProcessService) ProcessMessage(workerID int, msg domain.Update) 
 		}
 	}
 }
+
+func (s *MessageProcessService) StopProcessing() {
+
+}

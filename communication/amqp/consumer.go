@@ -92,6 +92,16 @@ func (c *Consumer) StartListening(messageChannel chan domain.Update) {
 	}()
 }
 
+func (c *Consumer) IsQueueOk() (string, error) {
+	_, err := c.channel.QueueDeclarePassive(
+		c.queue, true, false, false, false, nil,
+	)
+	if err != nil {
+		return "DOWN", err
+	}
+	return "UP", nil
+}
+
 func tracerStart(msgHeaders amqp091.Table) (context.Context, trace.Span) {
 
 	// Конвертируем amqp091.Table в propagation.MapCarrier

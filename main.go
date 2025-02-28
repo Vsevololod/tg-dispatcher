@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"os"
+	"os/signal"
+	"syscall"
 	"tg-dispatcher/communication/amqp"
 	"tg-dispatcher/config"
 	"tg-dispatcher/domain"
@@ -11,7 +14,6 @@ import (
 	"tg-dispatcher/service/processors"
 	"tg-dispatcher/storage/postgresql"
 	"tg-dispatcher/tracing"
-	"time"
 )
 
 const (
@@ -44,10 +46,29 @@ func main() {
 	workerCount := 5
 	messageService.StartProcessing(workerCount)
 
-	// Держим программу живой
-	for {
-		time.Sleep(time.Second)
-	}
+	health := NewHealth(storage, consumer, log)
+	health.Start()
+
+	// Контекст для graceful shutdown
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	<-ctx.Done() // Ждем сигнала завершения
+
+	log.Info("Shutdown signal received. Closing services...")
+
+	// Закрываем consumer
+	consumer.Close()
+	log.Info("Consumer stopped.")
+
+	// Закрываем процесс обработки сообщений
+	messageService.StopProcessing()
+	log.Info("Message processing stopped.")
+
+	health.StopProcessing()
+	log.Info("Stop /health endpoint.")
+
+	log.Info("Shutdown complete.")
 }
 
 func registerConsumer(inputMessageChannel chan domain.Update, cfg *config.AmqpConfig, log *slog.Logger) *amqp.Consumer {

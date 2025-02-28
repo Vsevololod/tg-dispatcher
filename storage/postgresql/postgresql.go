@@ -72,6 +72,18 @@ func (s *Storage) GetVideoById(ctx context.Context, videoId string) (models.Vide
 	return video, nil
 }
 
+func (s *Storage) IsDBOk() (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	err := s.db.Ping(ctx)
+	cancel()
+
+	if err != nil {
+		return "DOWN", err
+	} else {
+		return "UP", nil
+	}
+}
+
 // ConvertSQLCVideoToModel конвертирует структуру `db.Video` (от sqlc) в `models.Video`
 func ConvertSQLCVideoToModel(v gen.Video) models.Video {
 	return models.Video{
