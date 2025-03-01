@@ -13,8 +13,8 @@ services:
     environment:
       - CONFIG_PATH=/app/data/config.yaml,/app/data/config_auth.yaml
     volumes:
-      - ./config/config.yaml:/app/data/config.yaml
-      - ./config/config_auth.yaml:/app/data/config_auth.yaml
+      - /project/internal/configs/tg-dispatcher/config.yaml:/app/data/config.yaml
+      - /project/internal/configs/tg-dispatcher/config_auth.yaml:/app/data/config_auth.yaml
     networks:
       - tgqueue_default
 
