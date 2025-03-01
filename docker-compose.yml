@@ -11,9 +11,10 @@ services:
         GIT_COMMIT: "${COMMIT_HASH}"
         BUILD_TIME: "${BUILD_TIME}"
     environment:
-      - CONFIG_PATH=/app/data/config.yaml
+      - CONFIG_PATH=/app/data/config.yaml,/app/data/config_auth.yaml
     volumes:
       - ./config/config.yaml:/app/data/config.yaml
+      - ./config/config_auth.yaml:/app/data/config_auth.yaml
     networks:
       - tgqueue_default
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/ilyakaznacheev/cleanenv"
 	"os"
+	"strings"
 )
 
 type Config struct {
@@ -50,38 +51,55 @@ func (r PostgresConfig) GetDbUri() string {
 	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s", r.UserName, r.UserPass, r.Host, r.Port, r.DbName)
 }
 
+// MustLoad загружает конфигурацию из нескольких файлов, переопределяя значения.
 func MustLoad() *Config {
-	configPath := fetchConfigPath()
-	if configPath == "" {
-		panic("config path is empty")
-	}
-
-	// check if file exists
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		panic("config file does not exist: " + configPath)
+	configPaths := fetchConfigPaths()
+	if len(configPaths) == 0 {
+		panic("no config paths provided")
 	}
 
 	var cfg Config
 
-	if err := cleanenv.ReadConfig(configPath, &cfg); err != nil {
-		panic("config path is empty: " + err.Error())
+	for _, path := range configPaths {
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			panic("config file does not exist: " + path)
+		}
+
+		if err := cleanenv.ReadConfig(path, &cfg); err != nil {
+			panic("failed to read config: " + err.Error())
+		}
 	}
 
 	return &cfg
 }
 
-// fetchConfigPath fetches config path from command line flag or environment variable.
-// Priority: flag > env > default.
-// Default value is empty string.
-func fetchConfigPath() string {
-	var res string
+// fetchConfigPaths получает список путей к файлам конфигурации из флага командной строки или переменной окружения.
+func fetchConfigPaths() []string {
+	var paths string
 
-	flag.StringVar(&res, "config", "", "path to config file")
+	flag.StringVar(&paths, "config", "", "comma-separated list of config files")
 	flag.Parse()
 
-	if res == "" {
-		res = os.Getenv("CONFIG_PATH")
+	if paths == "" {
+		paths = os.Getenv("CONFIG_PATH")
 	}
 
-	return res
+	if paths == "" {
+		return nil
+	}
+
+	return splitAndTrim(paths)
+}
+
+// splitAndTrim разбивает строку по запятой и удаляет лишние пробелы.
+func splitAndTrim(input string) []string {
+	parts := strings.Split(input, ",")
+	var result []string
+	for _, path := range parts {
+		trimmed := strings.TrimSpace(path)
+		if trimmed != "" && strings.HasSuffix(trimmed, ".yaml") {
+			result = append(result, trimmed)
+		}
+	}
+	return result
 }

@@ -6,4 +6,4 @@ tg-dispatcher.iml
 .auth.env
 
 #configs
-config/config_local.yaml
+config/*_local.yaml
