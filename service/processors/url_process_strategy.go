@@ -40,7 +40,7 @@ func (s UrlProcessStrategy) GetDescription() string {
 }
 
 func (s UrlProcessStrategy) Process(update domain.Update) bool {
-	s.log.Info("Process Url:", update)
+	s.log.Info("Process Url:", sl.Req(update))
 
 	tracer := otel.Tracer("tg-dispatcher")
 	ctx, span := tracer.Start(update.Context, "ProcessMessage")

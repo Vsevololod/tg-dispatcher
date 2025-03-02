@@ -14,8 +14,8 @@ VALUES (@hash_id, @original_id, @url, @video_id, @load_timestamp, @user_id);
 
 
 
--- name: GetVideoByID :one
-SELECT * FROM video WHERE hash_id = @hash_id;
+-- name: GetVideoByVideoID :one
+SELECT * FROM video WHERE video_id = @video_id;
 
 -- name: UpdateVideo :exec
 UPDATE video SET

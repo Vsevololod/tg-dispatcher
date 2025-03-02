@@ -59,7 +59,7 @@ func (s *Storage) GetVideoById(ctx context.Context, videoId string) (models.Vide
 	const op = "storage.postgresql.Video"
 
 	// Получаем видео из БД с помощью sqlc
-	videoDB, err := s.queries.GetVideoByID(ctx, videoId)
+	videoDB, err := s.queries.GetVideoByVideoID(ctx, videoId)
 	if err != nil {
 		if err.Error() == "no rows in result set" {
 			return models.Video{}, fmt.Errorf("%s: %w", op, storage.ErrVideoNotFound)

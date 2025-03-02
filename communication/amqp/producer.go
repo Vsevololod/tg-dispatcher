@@ -87,7 +87,7 @@ func (p *Producer) PublishMessage(msg domain.MessageReq) error {
 	headers["uuid"] = msg.UUID
 
 	switch msg.Message.(type) {
-	case messagesv1.TgSendMessage:
+	case *messagesv1.TgSendMessage:
 		err = p.channel.PublishWithContext(
 			ctx,
 			p.exchange, // Exchange

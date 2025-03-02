@@ -88,12 +88,12 @@ func (q *Queries) CreateVideoMin(ctx context.Context, arg CreateVideoMinParams) 
 	return err
 }
 
-const getVideoByID = `-- name: GetVideoByID :one
-SELECT hash_id, original_id, url, video_id, load_timestamp, path, title, duration, timestamp, filesize, thumbnail, channel_url, channel_id, user_id, channel, loaded_times FROM video WHERE hash_id = $1
+const getVideoByVideoID = `-- name: GetVideoByVideoID :one
+SELECT hash_id, original_id, url, video_id, load_timestamp, path, title, duration, timestamp, filesize, thumbnail, channel_url, channel_id, user_id, channel, loaded_times FROM video WHERE video_id = $1
 `
 
-func (q *Queries) GetVideoByID(ctx context.Context, hashID string) (Video, error) {
-	row := q.db.QueryRow(ctx, getVideoByID, hashID)
+func (q *Queries) GetVideoByVideoID(ctx context.Context, videoID string) (Video, error) {
+	row := q.db.QueryRow(ctx, getVideoByVideoID, videoID)
 	var i Video
 	err := row.Scan(
 		&i.HashID,
