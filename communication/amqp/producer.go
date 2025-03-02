@@ -2,6 +2,7 @@ package amqp
 
 import (
 	"encoding/json"
+	messagesv1 "github.com/Vsevololod/tg-api-contracts-lib/gen/go/messages"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"log"
@@ -85,18 +86,34 @@ func (p *Producer) PublishMessage(msg domain.MessageReq) error {
 	headers := lib.MapCarrierToAMQPTable(msg.Context)
 	headers["uuid"] = msg.UUID
 
-	err = p.channel.PublishWithContext(
-		ctx,
-		p.exchange, // Exchange
-		routingKey, // Routing Key (для direct или topic exchange)
-		false,      // Mandatory
-		false,      // Immediate
-		amqp091.Publishing{
-			ContentType: "application/json",
-			Body:        body,
-			Headers:     headers,
-		},
-	)
+	switch msg.Message.(type) {
+	case messagesv1.TgSendMessage:
+		err = p.channel.PublishWithContext(
+			ctx,
+			p.exchange, // Exchange
+			routingKey, // Routing Key (для direct или topic exchange)
+			false,      // Mandatory
+			false,      // Immediate
+			amqp091.Publishing{
+				ContentType: "application/json",
+				Body:        body,
+				Headers:     headers,
+			},
+		)
+	default:
+		err = p.channel.PublishWithContext(
+			ctx,
+			p.exchange, // Exchange
+			routingKey, // Routing Key (для direct или topic exchange)
+			false,      // Mandatory
+			false,      // Immediate
+			amqp091.Publishing{
+				ContentType: "application/json",
+				Body:        body,
+				Headers:     headers,
+			},
+		)
+	}
 
 	if err != nil {
 		span.RecordError(err)

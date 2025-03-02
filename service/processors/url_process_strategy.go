@@ -12,6 +12,8 @@ import (
 	"tg-dispatcher/lib"
 	"tg-dispatcher/lib/logger/sl"
 	"tg-dispatcher/storage"
+
+	"github.com/Vsevololod/tg-api-contracts-lib/gen/go/messages"
 )
 
 type UrlProcessStrategy struct {
@@ -71,17 +73,26 @@ func (s UrlProcessStrategy) Process(update domain.Update) bool {
 				Context: ctx,
 			}
 		} else {
-			s.outputMessageChannel <- domain.MessageReq{
-				UUID:        update.UUID,
-				Destination: domain.VideoMessageSand,
-				Message: domain.MessageSendReq{
-					UserId: update.Message.From.ID,
-					HashId: video.HashID,
-				},
-				Context: ctx,
-			}
+			s.log.Error("Cannot get video", sl.Err(err), sl.Req(update))
 		}
 	}
+	message := messagesv1.TgSendMessage{
+		Text:   video.Title,
+		UserId: uint64(video.UserID),
+		Type:   messagesv1.MessageType_IMAGE,
+		Params: map[string]string{
+			messagesv1.MessageParams_FILE_URL.String():  video.Path,
+			messagesv1.MessageParams_PHOTO_URL.String(): video.Thumbnail,
+		},
+	}
+
+	s.outputMessageChannel <- domain.MessageReq{
+		UUID:        update.UUID,
+		Destination: domain.VideoMessageSand,
+		Message:     &message,
+		Context:     ctx,
+	}
+
 	return true
 }
 func (s UrlProcessStrategy) CanProcess(update domain.Update) bool {
